@@ -27,9 +27,14 @@
       <div class="chat-header">
         <span v-if="currentConv">{{ currentConv.title }}</span>
         <span v-else>请选择会话</span>
-        <el-button v-if="currentConv" size="small" text @click="onVerifyChain">
-          <el-icon><Lock /></el-icon> 验证存证
-        </el-button>
+        <div>
+          <el-button v-if="auth.realNameRequired" size="small" type="warning" @click="$router.push('/realname')">
+            <el-icon><Warning /></el-icon> 未实名认证
+          </el-button>
+          <el-button v-if="currentConv" size="small" text @click="onVerifyChain">
+            <el-icon><Lock /></el-icon> 验证存证
+          </el-button>
+        </div>
       </div>
 
       <div ref="messageList" class="chat-messages">
@@ -38,6 +43,13 @@
           <el-avatar :size="36" :icon="UserFilled" />
           <div>
             <div class="message-bubble">{{ m.content }}</div>
+            <!-- 联机核查引用 -->
+            <div v-if="m.verifyRefs?.length" class="verify-refs">
+              <el-tag v-for="r in m.verifyRefs" :key="r.id"
+                      :type="tagType(r.type)" size="small" style="margin-right: 4px;">
+                {{ typeName(r.type) }}: {{ r.summary?.substring(0, 30) }}{{ r.summary?.length > 30 ? '...' : '' }}
+              </el-tag>
+            </div>
             <div class="message-time">
               {{ formatTime(m.serverTs) }}
               <el-tooltip v-if="m.contentHash" content="已上链存证" placement="top">
@@ -53,7 +65,7 @@
 
       <div class="chat-composer">
         <el-input v-model="draft" type="textarea" :rows="2" resize="none"
-                  placeholder="请输入消息... (Ctrl+Enter 发送)"
+                  placeholder="请输入消息... (Ctrl+Enter 发送, 发送后自动联网核查)"
                   @keydown.ctrl.enter="onSend" :disabled="!currentConv" />
         <el-button type="primary" @click="onSend" :loading="sending" :disabled="!currentConv">
           发送
@@ -75,6 +87,16 @@ import { useRoute } from 'vue-router'
 const route = useRoute()
 const chat = useChatStore()
 const auth = useAuthStore()
+
+const tagType = (t: string) => ({
+  ENT: 'primary', STOCK: 'warning', POLICY: 'info',
+  PRODUCT: 'success', CREDIT: 'danger', PUBLIC_SENTIMENT: 'danger'
+}[t] || 'info')
+
+const typeName = (t: string) => ({
+  ENT: '工商', STOCK: '行情', POLICY: '政策',
+  PRODUCT: '产品', CREDIT: '征信', PUBLIC_SENTIMENT: '舆情'
+}[t] || t)
 
 const draft = ref('')
 const sending = ref(false)
@@ -180,4 +202,5 @@ onMounted(async () => {
   display: flex; justify-content: space-between; font-size: 12px; color: #909399;
 }
 .empty { padding: 24px; text-align: center; color: #909399; font-size: 13px; }
+.verify-refs { margin-top: 4px; font-size: 12px; }
 </style>

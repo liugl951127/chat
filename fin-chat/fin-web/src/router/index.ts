@@ -42,6 +42,12 @@ const routes = [
         name: 'compliance',
         component: () => import('@/views/compliance/RiskTestPage.vue'),
         meta: { title: '风险测评' }
+      },
+      {
+        path: 'realname',
+        name: 'realname',
+        component: () => import('@/views/auth/RealNamePage.vue'),
+        meta: { title: '实名认证' }
       }
     ]
   },

@@ -26,6 +26,7 @@ import java.util.Map;
 public class AuthController {
 
     @Autowired private WxMiniLoginHandler wxMiniHandler;
+    @Autowired private WecomLoginHandler wecomHandler;
     @Autowired private MobileLoginHandler mobileHandler;
     @Autowired private SmsService smsService;
     @Autowired private JwtIssuer jwtIssuer;
@@ -38,6 +39,14 @@ public class AuthController {
                                                   HttpServletRequest http) {
         req.setClientIp(getClientIp(http));
         return ApiResponse.ok(wxMiniHandler.login(req));
+    }
+
+    @PostMapping("/wecom/login")
+    @Operation(summary = "企业微信登录")
+    public ApiResponse<LoginResponse> wecomLogin(@Valid @RequestBody WecomLoginRequest req,
+                                                  HttpServletRequest http) {
+        req.setClientIp(getClientIp(http));
+        return ApiResponse.ok(wecomHandler.login(req));
     }
 
     @PostMapping("/mobile/login")
