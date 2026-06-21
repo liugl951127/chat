@@ -1,0 +1,20 @@
+server:
+  port: 8094
+
+spring:
+  application:
+    name: fin-observability
+
+fin:
+  modules:
+    auth-url: http://localhost:8081
+    chat-url: http://localhost:8082
+    trade-url: http://localhost:8083
+    compliance-url: http://localhost:8090
+    kms-url: http://localhost:8091
+    notify-url: http://localhost:8092
+    audit-url: http://localhost:8093
+
+logging:
+  level:
+    com.fin: DEBUG

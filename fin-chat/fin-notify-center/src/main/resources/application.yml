@@ -1,0 +1,10 @@
+server:
+  port: 8092
+
+spring:
+  application:
+    name: fin-notify-center
+
+logging:
+  level:
+    com.fin: DEBUG

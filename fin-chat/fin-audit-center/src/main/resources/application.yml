@@ -1,0 +1,10 @@
+server:
+  port: 8093
+
+spring:
+  application:
+    name: fin-audit-center
+
+logging:
+  level:
+    com.fin: DEBUG
