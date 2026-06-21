@@ -1,0 +1,65 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: fin-auth-center
+  profiles:
+    active: dev
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      timeout: 3s
+  datasource:
+    url: jdbc:h2:mem:fin_auth;MODE=MySQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:db/schema-h2.sql
+      continue-on-error: true
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+fin:
+  jwt:
+    issuer: fin-auth
+    access-ttl-seconds: 900
+    refresh-ttl-seconds: 1209600
+    signing-key-alias: jwt-signing
+  wx:
+    mini:
+      appid: ${WX_MINI_APPID:wx_demo_appid}
+      secret: ${WX_MINI_SECRET:wx_demo_secret}
+  sms:
+    ttl-seconds: 60
+    max-retry: 5
+    cool-down: 60
+  kms:
+    url: ${KMS_URL:http://localhost:8091}
+    soft-fallback: ${KMS_SOFT:true}
+  audit:
+    endpoint: ${AUDIT_URL:http://localhost:8093}
+  login:
+    max-per-minute: 30
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.nologging.NoLoggingImpl
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    com.fin: DEBUG
+    org.springframework.web: INFO

@@ -1,0 +1,175 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version>
+        <relativePath/>
+    </parent>
+
+    <groupId>com.fin</groupId>
+    <artifactId>fin-chat</artifactId>
+    <version>1.0.0</version>
+    <packaging>pom</packaging>
+    <name>fin-chat</name>
+    <description>金融合规多端聊天与交易系统</description>
+
+    <modules>
+        <module>fin-commons</module>
+        <module>fin-api</module>
+        <module>fin-storage</module>
+        <module>fin-kms-gateway</module>
+        <module>fin-notify-center</module>
+        <module>fin-audit-center</module>
+        <module>fin-auth-center</module>
+        <module>fin-chat-center</module>
+        <module>fin-trade-gateway</module>
+        <module>fin-compliance-center</module>
+        <module>fin-observability</module>
+        <module>fin-gateway</module>
+        <module>fin-bootstrap</module>
+    </modules>
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <spring-cloud.version>2023.0.1</spring-cloud.version>
+        <mybatis-plus.version>3.5.5</mybatis-plus.version>
+        <hutool.version>5.8.27</hutool.version>
+        <jjwt.version>0.12.5</jjwt.version>
+        <nacos.version>2022.0.0.0</nacos.version>
+        <bouncycastle.version>1.78</bouncycastle.version>
+        <sm-crypto.version>0.3.0</sm-crypto.version>
+        <element-plus.version>2.5.6</element-plus.version>
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Cloud BOM -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+
+            <!-- Alibaba Nacos -->
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+                <version>${nacos.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+                <version>${nacos.version}</version>
+            </dependency>
+
+            <!-- MyBatis-Plus -->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+
+            <!-- Hutool -->
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>${hutool.version}</version>
+            </dependency>
+
+            <!-- JJWT -->
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt.version}</version>
+            </dependency>
+
+            <!-- BouncyCastle (国密) -->
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcprov-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.bouncycastle</groupId>
+                <artifactId>bcpkix-jdk18on</artifactId>
+                <version>${bouncycastle.version}</version>
+            </dependency>
+
+            <!-- 项目内部模块 -->
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-commons</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-api</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-storage</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-kms-gateway</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-notify-center</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-audit-center</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <build>
+        <pluginManagement>
+            <plugins>
+                <plugin>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-maven-plugin</artifactId>
+                    <configuration>
+                        <classifier>spring-boot</classifier>
+                    </configuration>
+                </plugin>
+            </plugins>
+        </pluginManagement>
+    </build>
+
+    <repositories>
+        <repository>
+            <id>aliyun-public</id>
+            <url>https://maven.aliyun.com/repository/public</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+    </repositories>
+</project>

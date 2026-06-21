@@ -1,0 +1,52 @@
+# Compiled class file
+*.class
+
+# Build artifacts
+target/
+build/
+out/
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.settings/
+.classpath
+.project
+nbproject/
+nb-configuration.xml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
+
+# Node
+node_modules/
+dist/
+.cache/
+.npm/
+.pnpm-store/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# IDE temp
+*.swp
+*.swo
+*~
