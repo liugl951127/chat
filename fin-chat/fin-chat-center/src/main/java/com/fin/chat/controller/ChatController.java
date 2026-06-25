@@ -55,6 +55,36 @@ public class ChatController {
         return ApiResponse.ok(conversationService.create(userId, advisorId, type, title));
     }
 
+    /**
+     * 客服 (agent) 主动发起会话
+     * POST /api/v1/chat/agent/conversations
+     * body: {customerId, title?}
+     */
+    @PostMapping("/agent/conversations")
+    public ApiResponse<Conversation> agentCreateConversation(@RequestBody Map<String, Object> body) {
+        Long agentId = UserContext.getUserId();
+        if (agentId == null) throw new IllegalStateException("未登录");
+        if (agentId.toString().startsWith("8")) {
+            // mock: agent id 以 8 开头代表客服, 允许发起
+        }
+        Long customerId = body.get("customerId") == null ? null
+                : Long.valueOf(body.get("customerId").toString());
+        if (customerId == null) throw new IllegalArgumentException("customerId 必填");
+        String title = (String) body.get("title");
+        return ApiResponse.ok(conversationService.agentInitiate(agentId, customerId, title));
+    }
+
+    /**
+     * 客服查看: 我接的客户会话
+     * GET /api/v1/chat/agent/conversations
+     */
+    @GetMapping("/agent/conversations")
+    public ApiResponse<java.util.List<Conversation>> listAgentConversations() {
+        Long agentId = UserContext.getUserId();
+        if (agentId == null) throw new IllegalStateException("未登录");
+        return ApiResponse.ok(conversationService.listByAdvisor(agentId));
+    }
+
     @GetMapping("/conversations/{id}")
     public ApiResponse<Conversation> getConversation(@PathVariable String id) {
         Conversation c = conversationService.get(id);
