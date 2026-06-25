@@ -8,10 +8,32 @@
     </parent>
     <artifactId>fin-gateway</artifactId>
     <dependencies>
-        <dependency><groupId>com.fin</groupId><artifactId>fin-commons</artifactId></dependency>
+        <!--
+          fin-commons 会传递 spring-boot-starter-web (servlet),
+          Gateway 用 WebFlux (reactive), 两者互斥, 必须排除
+        -->
+        <dependency>
+            <groupId>com.fin</groupId>
+            <artifactId>fin-commons</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-web</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-gateway</artifactId>
+        </dependency>
+        <!--
+          Spring Cloud Gateway 本身需 jakatra.servlet API (如 WebFilter 接口)
+          但不需要 Tomcat. 手动加 servlet API, 不加 web starter
+        -->
+        <dependency>
+            <groupId>jakarta.servlet</groupId>
+            <artifactId>jakarta.servlet-api</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

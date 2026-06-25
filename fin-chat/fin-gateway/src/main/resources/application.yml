@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: fin-gateway
+  main:
+    web-application-type: reactive   # Gateway 用 WebFlux, 不能用 servlet
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
