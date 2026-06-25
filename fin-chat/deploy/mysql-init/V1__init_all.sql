@@ -103,8 +103,8 @@ CREATE TABLE fin_conversation (
 
 DROP TABLE IF EXISTS fin_message;
 CREATE TABLE fin_message (
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
-    msg_id          VARCHAR(32) UNIQUE NOT NULL,
+    id              BIGINT NOT NULL AUTO_INCREMENT,
+    msg_id          VARCHAR(32) NOT NULL,
     conversation_id VARCHAR(32) NOT NULL,
     user_id         BIGINT,
     sender_id       BIGINT,
@@ -117,6 +117,8 @@ CREATE TABLE fin_message (
     tsa_sign        TEXT,
     ext             JSON,
     server_ts       DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id, server_ts),
+    UNIQUE KEY uk_msg_id (msg_id, server_ts),
     INDEX idx_conv_ts (conversation_id, server_ts),
     INDEX idx_user_ts (user_id, server_ts)
 ) ENGINE=InnoDB
@@ -265,7 +267,7 @@ CREATE TABLE fin_key_meta (
     id              BIGINT PRIMARY KEY AUTO_INCREMENT,
     key_alias       VARCHAR(128) UNIQUE NOT NULL,
     algorithm       VARCHAR(16) NOT NULL COMMENT 'SM2/SM4',
-    usage           VARCHAR(16) NOT NULL COMMENT 'SIGN/ENC',
+    key_usage       VARCHAR(16) NOT NULL COMMENT 'SIGN/ENC/JWT',
     business_id     VARCHAR(64),
     hsm_index       VARCHAR(64) COMMENT '加密机内部索引',
     status          TINYINT DEFAULT 1 COMMENT '1=启用 2=禁用 3=过期',
@@ -321,7 +323,7 @@ USE fin_audit;
 
 DROP TABLE IF EXISTS fin_audit_log;
 CREATE TABLE fin_audit_log (
-    id              BIGINT PRIMARY KEY AUTO_INCREMENT,
+    id              BIGINT NOT NULL AUTO_INCREMENT,
     trace_id        VARCHAR(64) NOT NULL,
     user_id         BIGINT,
     user_role       VARCHAR(32),
@@ -341,7 +343,8 @@ CREATE TABLE fin_audit_log (
     curr_hash       CHAR(64),
     merkle_root     CHAR(64),
     tsa_sign        TEXT,
-    ts              DATETIME(3) DEFAULT CURRENT_TIMESTAMP(3),
+    ts              DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (id, ts),
     INDEX idx_trace (trace_id),
     INDEX idx_user_time (user_id, ts),
     INDEX idx_event (event_type, ts),
