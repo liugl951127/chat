@@ -1,4 +1,4 @@
-import axios, { AxiosError, AxiosRequestConfig } from 'axios'
+import axios, { AxiosError, AxiosRequestConfig, InternalAxiosRequestConfig } from 'axios'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
 
@@ -8,7 +8,7 @@ const instance = axios.create({
 })
 
 // 请求拦截
-instance.interceptors.request.use((cfg) => {
+instance.interceptors.request.use((cfg: InternalAxiosRequestConfig) => {
   const auth = useAuthStore()
   if (auth.accessToken) {
     cfg.headers.Authorization = `Bearer ${auth.accessToken}`
@@ -18,9 +18,9 @@ instance.interceptors.request.use((cfg) => {
   return cfg
 })
 
-// 响应拦截
+// 响应拦截 (保持 axios 全响应, store 自己读 resp.data)
 instance.interceptors.response.use(
-  (resp) => resp.data,
+  (resp) => resp,
   async (error: AxiosError<any>) => {
     const { response, config } = error
     const auth = useAuthStore()
@@ -38,11 +38,12 @@ instance.interceptors.response.use(
       }
     }
 
-    const msg = response?.data?.message || '请求失败'
+    const apiResp = response?.data
+    const msg = apiResp?.message || '请求失败'
     if (response?.status !== 401) {
       ElMessage.error(msg)
     }
-    return Promise.reject(error)
+    return Promise.reject(new Error(msg))
   }
 )
 

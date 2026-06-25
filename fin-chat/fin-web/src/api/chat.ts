@@ -24,6 +24,20 @@ export interface ChatMessage {
   contentHash: string
   prevHash?: string
   serverTs: number
+  /** 联机核查引用 (12 Providers 之一) */
+  verifyRefs?: VerifyRef[]
+}
+
+export interface VerifyRef {
+  id: string
+  /** Provider 类型: BANK / LICENSE / BLACKLIST / POLICE / COURT / ... */
+  type: string
+  /** 核查结果摘要 */
+  summary: string
+  /** 是否命中风险 */
+  hit: boolean
+  /** Provider 来源 */
+  source: string
 }
 
 /** 会话列表 */

@@ -7,16 +7,18 @@
         <el-button size="small" type="primary" @click="onNewConv">+ 新建</el-button>
       </div>
       <div class="conv-list">
-        <div v-for="c in chat.conversations" :key="c.id"
-             :class="['conv-item', { active: c.id === chat.currentConvId }]"
-             @click="onSelectConv(c.id)">
-          <div class="conv-title">{{ c.title }}</div>
-          <div class="conv-meta">
-            <span>{{ c.msgCount }} 条消息</span>
-            <span v-if="c.lastMsgAt" class="time">{{ formatTime(c.lastMsgAt) }}</span>
+        <template v-for="c in (chat.conversations || [])" :key="c?.id || Math.random()">
+          <div v-if="c && c.id"
+               :class="['conv-item', { active: c.id === chat.currentConvId }]"
+               @click="onSelectConv(c.id)">
+            <div class="conv-title">{{ c.title || '未命名会话' }}</div>
+            <div class="conv-meta">
+              <span>{{ c.msgCount || 0 }} 条消息</span>
+              <span v-if="c.lastMsgAt" class="time">{{ formatTime(c.lastMsgAt) }}</span>
+            </div>
           </div>
-        </div>
-        <div v-if="!chat.conversations.length" class="empty">
+        </template>
+        <div v-if="!(chat.conversations && chat.conversations.length)" class="empty">
           暂无会话, 点击右上角新建
         </div>
       </div>

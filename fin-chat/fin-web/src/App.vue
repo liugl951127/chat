@@ -10,7 +10,7 @@ const auth = useAuthStore()
 
 onMounted(() => {
   // 自动登录态检查
-  if (auth.accessToken && !auth.user) {
+  if (auth.accessToken && !auth.userId) {
     auth.fetchProfile().catch(() => {
       // ignore
     })
