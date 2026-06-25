@@ -44,6 +44,7 @@
         <mybatis-plus.version>3.5.5</mybatis-plus.version>
         <hutool.version>5.8.27</hutool.version>
         <jjwt.version>0.12.5</jjwt.version>
+        <lombok.version>1.18.32</lombok.version>
         <nacos.version>2022.0.0.0</nacos.version>
         <bouncycastle.version>1.78</bouncycastle.version>
         <sm-crypto.version>0.3.0</sm-crypto.version>
@@ -104,6 +105,14 @@
                 <version>${jjwt.version}</version>
             </dependency>
 
+            <!-- Lombok -->
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <optional>true</optional>
+            </dependency>
+
             <!-- BouncyCastle (国密) -->
             <dependency>
                 <groupId>org.bouncycastle</groupId>
@@ -139,6 +148,41 @@
             </dependency>
             <dependency>
                 <groupId>com.fin</groupId>
+                <artifactId>fin-auth-center</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-chat-center</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-trade-gateway</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-compliance-center</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-observability</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-gateway</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
+                <artifactId>fin-bootstrap</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.fin</groupId>
                 <artifactId>fin-notify-center</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -153,11 +197,12 @@
     <build>
         <pluginManagement>
             <plugins>
+                <!-- 默认可执行模块都不自动 repackage, 由可执行模块自己覆盖 -->
                 <plugin>
                     <groupId>org.springframework.boot</groupId>
                     <artifactId>spring-boot-maven-plugin</artifactId>
                     <configuration>
-                        <classifier>spring-boot</classifier>
+                        <skip>true</skip>
                     </configuration>
                 </plugin>
             </plugins>

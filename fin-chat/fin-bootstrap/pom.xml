@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>com.fin</groupId>
+        <artifactId>fin-chat</artifactId>
+        <version>1.0.0</version>
+    </parent>
+    <artifactId>fin-bootstrap</artifactId>
+    <description>统一启动器 (单体模式沙箱演示)</description>
+    <dependencies>
+        <dependency><groupId>com.fin</groupId><artifactId>fin-commons</artifactId></dependency>
+            <dependency><groupId>org.projectlombok</groupId><artifactId>lombok</artifactId></dependency>
+    </dependencies>
+</project>

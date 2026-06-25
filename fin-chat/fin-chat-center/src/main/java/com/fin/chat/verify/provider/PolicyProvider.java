@@ -1,4 +1,11 @@
-package com.fin.chat.verify;
+package com.fin.chat.verify.provider;
+
+import com.fin.chat.verify.VerifyEntity;
+import com.fin.chat.verify.VerifyResult;
+import com.fin.chat.verify.VerifyType;
+import com.fin.chat.verify.VerifyRef;
+import com.fin.chat.verify.VerifyProvider;
+import com.fin.chat.verify.EntityType;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

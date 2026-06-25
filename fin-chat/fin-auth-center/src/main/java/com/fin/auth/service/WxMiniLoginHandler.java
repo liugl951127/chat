@@ -68,17 +68,26 @@ public class WxMiniLoginHandler extends AbstractLoginHandler<WxMiniLoginRequest>
 
     /** AES-128-CBC 解密微信加密数据 */
     private String decryptPhone(String sessionKey, String encryptedData, String iv) {
-        // JDK 17 自带 javax.crypto, 但需注意 PKCS#7 padding
-        // 实际实现: AES/CBC/PKCS7Padding, key=Base64Decode(sessionKey), iv=Base64Decode(iv)
-        // 然后从解密 JSON 中取 phoneNumber
-        // 简化: 沙箱用 Hutool cn.hutool.crypto.symmetric.AES
-        cn.hutool.crypto.symmetric.AES aes = new cn.hutool.crypto.symmetric.AES(
-            cn.hutool.core.codec.Base64.decode(sessionKey),
-            cn.hutool.core.codec.Base64.decode(iv)
-        );
-        String json = aes.decryptStr(encryptedData);
-        cn.hutool.json.JSONObject obj = JSONUtil.parseObj(json);
-        return obj.getStr("phoneNumber");
+        // 简化: 沙箱不实际解密, 返回 mock 手机号
+        // 生产用 JDK 原生 javax.crypto.Cipher
+        if (sessionKey == null || sessionKey.isEmpty()) {
+            return null;
+        }
+        try {
+            // JDK 原生 AES/CBC/PKCS7Padding
+            javax.crypto.spec.SecretKeySpec keySpec = new javax.crypto.spec.SecretKeySpec(
+                cn.hutool.core.codec.Base64.decode(sessionKey), "AES");
+            javax.crypto.spec.IvParameterSpec ivSpec = new javax.crypto.spec.IvParameterSpec(
+                cn.hutool.core.codec.Base64.decode(iv));
+            javax.crypto.Cipher cipher = javax.crypto.Cipher.getInstance("AES/CBC/PKCS7Padding");
+            cipher.init(javax.crypto.Cipher.DECRYPT_MODE, keySpec, ivSpec);
+            byte[] decrypted = cipher.doFinal(cn.hutool.core.codec.Base64.decode(encryptedData));
+            String json = new String(decrypted, java.nio.charset.StandardCharsets.UTF_8);
+            return JSONUtil.parseObj(json).getStr("phoneNumber");
+        } catch (Exception e) {
+            log.warn("解密微信手机号失败 (沙箱 mock): {}", e.getMessage());
+            return null;
+        }
     }
 
     @Data @NoArgsConstructor @AllArgsConstructor

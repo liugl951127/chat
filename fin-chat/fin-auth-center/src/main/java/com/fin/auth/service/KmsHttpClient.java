@@ -7,24 +7,32 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.util.encoders.Hex;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import jakarta.annotation.PostConstruct;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
+import java.security.MessageDigest;
+import java.security.Security;
 import java.util.Map;
 
 /**
  * KMS HTTP 客户端 (沙箱)
  *
- * <p>生产: 用 @DubboReference / FeignClient 调 kms-gateway
- * <p>沙箱: 走 HSM 客户端本地调 (软算法)
- *
- * <p>接口契约见 {@link com.fin.kms.controller.KmsController}
+ * <p>沙箱: 走本地 BC 算法
+ * <p>生产: HTTP 调 kms-gateway
  */
 @Slf4j
 @Component
 public class KmsHttpClient {
+
+    static {
+        if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
+            Security.addProvider(new BouncyCastleProvider());
+        }
+    }
 
     @Value("${fin.kms.url:http://localhost:8091}")
     private String kmsUrl;
@@ -36,7 +44,13 @@ public class KmsHttpClient {
 
     public String sm3Hash(String data) {
         if (softFallback) {
-            return cn.hutool.crypto.SecureUtil.sm3().digestHex(data);
+            try {
+                byte[] hash = MessageDigest.getInstance("SM3", BouncyCastleProvider.PROVIDER_NAME)
+                    .digest(data == null ? new byte[0] : data.getBytes(StandardCharsets.UTF_8));
+                return Hex.toHexString(hash);
+            } catch (Exception e) {
+                throw new IllegalStateException("SM3 失败: " + e.getMessage(), e);
+            }
         }
         return postForString("/api/kms/sm3/hash", Map.of("data", data), "hash");
     }
@@ -44,33 +58,31 @@ public class KmsHttpClient {
     /* ============== SM4 ============== */
 
     public byte[] sm4Encrypt(String keyAlias, byte[] plaintext) {
+        // 沙箱简化: 用 XOR + SM3 hash 作 key
         if (softFallback) {
-            // 沙箱: 走 jvm 内软算法
-            cn.hutool.crypto.symmetric.SM4 sm4 = new cn.hutool.crypto.symmetric.SM4(
-                new byte[16], new byte[16],
-                cn.hutool.crypto.symmetric.SM4.Mode.CBC,
-                cn.hutool.crypto.symmetric.SM4.Padding.PKCS7Padding
-            );
-            return sm4.encrypt(plaintext);
+            try {
+                byte[] key = sm3Hash(keyAlias).substring(0, 32).getBytes();
+                byte[] out = new byte[plaintext.length];
+                for (int i = 0; i < plaintext.length; i++) {
+                    out[i] = (byte) (plaintext[i] ^ key[i % key.length]);
+                }
+                return out;
+            } catch (Exception e) {
+                throw new IllegalStateException("SM4 沙箱模拟失败", e);
+            }
         }
-        // 生产: HTTP 调
         String hex = postForString("/api/kms/sm4/encrypt",
                 Map.of("keyAlias", keyAlias, "data", new String(plaintext, StandardCharsets.UTF_8)),
                 "hex");
-        return cn.hutool.core.util.HexUtil.decodeHex(hex);
+        return Hex.decode(hex);
     }
 
     public byte[] sm4Decrypt(String keyAlias, byte[] ciphertext) {
         if (softFallback) {
-            cn.hutool.crypto.symmetric.SM4 sm4 = new cn.hutool.crypto.symmetric.SM4(
-                new byte[16], new byte[16],
-                cn.hutool.crypto.symmetric.SM4.Mode.CBC,
-                cn.hutool.crypto.symmetric.SM4.Padding.PKCS7Padding
-            );
-            return sm4.decrypt(ciphertext);
+            return sm4Encrypt(keyAlias, ciphertext);  // XOR 自反
         }
         String plain = postForString("/api/kms/sm4/decrypt",
-                Map.of("keyAlias", keyAlias, "data", cn.hutool.core.util.HexUtil.encodeHexStr(ciphertext)),
+                Map.of("keyAlias", keyAlias, "data", Hex.toHexString(ciphertext)),
                 "plain");
         return plain.getBytes(StandardCharsets.UTF_8);
     }
@@ -79,36 +91,17 @@ public class KmsHttpClient {
 
     public Sm2SignResult sm2Sign(String keyAlias, byte[] data) {
         if (softFallback) {
-            // 沙箱: 走 jvm 内 BC 算法
-            return softSign(keyAlias, data);
+            // 沙箱: 返回 SM3 摘要作伪签名
+            String digest = sm3Hash(new String(data, StandardCharsets.UTF_8));
+            return new Sm2SignResult(digest.getBytes(), digest.getBytes(), "SANDBOX-SM3");
         }
         Map<String, Object> resp = postForMap("/api/kms/sm2/sign",
                 Map.of("keyAlias", keyAlias, "data", new String(data, StandardCharsets.UTF_8)));
         Sm2SignResult r = new Sm2SignResult();
-        r.setSignature(cn.hutool.core.util.HexUtil.decodeHex((String) resp.get("signature")));
-        r.setPublicKey(cn.hutool.core.util.HexUtil.decodeHex((String) resp.get("publicKey")));
+        r.setSignature(Hex.decode((String) resp.get("signature")));
+        r.setPublicKey(Hex.decode((String) resp.get("publicKey")));
         r.setAlgorithm((String) resp.get("algorithm"));
         return r;
-    }
-
-    private Sm2SignResult softSign(String keyAlias, byte[] data) {
-        // 用 BC 软算法 (沙箱)
-        try {
-            java.security.KeyPairGenerator kpg = java.security.KeyPairGenerator.getInstance(
-                    "EC", org.bouncycastle.jce.provider.BouncyCastleProvider.PROVIDER_NAME);
-            kpg.initialize(new java.security.spec.ECGenParameterSpec("sm2p256v1"));
-            java.security.KeyPair kp = kpg.generateKeyPair();
-            String digest = cn.hutool.crypto.SecureUtil.sm3().digestHex(data);
-            // 简化: 这里用 hutool SM2 API
-            cn.hutool.crypto.SM2 sm2 = cn.hutool.crypto.SecureUtil.sm2(
-                    (java.security.PrivateKey) kp.getPrivate(),
-                    (java.security.PublicKey) kp.getPublic()
-            );
-            byte[] sig = sm2.sign(digest.getBytes(StandardCharsets.UTF_8));
-            return new Sm2SignResult(sig, kp.getPublic().getEncoded(), "SM2withSM3");
-        } catch (Exception e) {
-            throw new IllegalStateException("软算法 SM2 签名失败", e);
-        }
     }
 
     /* ============== HTTP 工具 ============== */

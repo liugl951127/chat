@@ -11,7 +11,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
 import java.util.concurrent.TimeUnit;
@@ -40,6 +42,9 @@ public class WxH5LoginHandler extends AbstractLoginHandler<WxH5LoginRequest> {
 
     @Value("${fin.wx.h5.secret:wx_demo_h5_secret}")
     private String secret;
+
+    @Autowired
+    private StringRedisTemplate redis;
 
     @Override public LoginChannel channel() { return LoginChannel.WX_H5; }
     @Override public Class<WxH5LoginRequest> requestClass() { return WxH5LoginRequest.class; }

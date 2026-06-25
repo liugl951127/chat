@@ -3,8 +3,6 @@ package com.fin.auth.controller;
 import com.fin.auth.dto.*;
 import com.fin.auth.service.*;
 import com.fin.commons.resp.ApiResponse;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +20,6 @@ import java.util.Map;
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
 @Slf4j
-@Tag(name = "Auth", description = "多端登录")
 public class AuthController {
 
     @Autowired private WxMiniLoginHandler wxMiniHandler;
@@ -35,7 +32,6 @@ public class AuthController {
     /* ============== 多端登录 ============== */
 
     @PostMapping("/wx/mini/login")
-    @Operation(summary = "微信小程序登录")
     public ApiResponse<LoginResponse> wxMiniLogin(@Valid @RequestBody WxMiniLoginRequest req,
                                                   HttpServletRequest http) {
         req.setClientIp(getClientIp(http));
@@ -43,7 +39,6 @@ public class AuthController {
     }
 
     @PostMapping("/wx/h5/login")
-    @Operation(summary = "微信公众号 H5 登录")
     public ApiResponse<LoginResponse> wxH5Login(@Valid @RequestBody WxH5LoginRequest req,
                                                  HttpServletRequest http) {
         req.setClientIp(getClientIp(http));
@@ -52,7 +47,6 @@ public class AuthController {
 
     /** 预生成 state, 前端跳微信授权前调用 */
     @GetMapping("/wx/h5/state")
-    @Operation(summary = "生成微信 H5 授权 state")
     public ApiResponse<Map<String, String>> wxH5State(@RequestHeader("X-Device-Id") String deviceId) {
         String state = wxH5Handler.generateState(deviceId);
         String url = "https://open.weixin.qq.com/connect/oauth2/authorize"
@@ -62,7 +56,6 @@ public class AuthController {
     }
 
     @PostMapping("/wecom/login")
-    @Operation(summary = "企业微信登录")
     public ApiResponse<LoginResponse> wecomLogin(@Valid @RequestBody WecomLoginRequest req,
                                                   HttpServletRequest http) {
         req.setClientIp(getClientIp(http));
@@ -70,7 +63,6 @@ public class AuthController {
     }
 
     @PostMapping("/mobile/login")
-    @Operation(summary = "手机号 + 短信登录")
     public ApiResponse<LoginResponse> mobileLogin(@Valid @RequestBody MobileLoginRequest req,
                                                   HttpServletRequest http) {
         req.setClientIp(getClientIp(http));
@@ -80,7 +72,6 @@ public class AuthController {
     /* ============== 短信 ============== */
 
     @PostMapping("/sms/send")
-    @Operation(summary = "下发短信验证码")
     public ApiResponse<Map<String, Object>> sendSms(@RequestBody Map<String, String> body,
                                                     HttpServletRequest http) {
         String mobile = body.get("mobile");
@@ -96,7 +87,6 @@ public class AuthController {
     /* ============== Token ============== */
 
     @PostMapping("/refresh")
-    @Operation(summary = "刷新 access token")
     public ApiResponse<Map<String, Object>> refresh(@RequestBody Map<String, String> body) {
         String refreshToken = body.get("refreshToken");
         if (refreshToken == null) throw new IllegalArgumentException("refreshToken 必填");
@@ -108,7 +98,6 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    @Operation(summary = "登出 (拉黑 refresh token)")
     public ApiResponse<Void> logout(@RequestBody Map<String, String> body) {
         String userId = body.get("userId");
         String deviceId = body.get("deviceId");
