@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fin-Chat 聊天演示 (前端客户 ↔ 后端)</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: #f5f7fa;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 14px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    header h1 { font-size: 16px; margin: 0; }
+    .status {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 12px;
+      background: rgba(255,255,255,0.2);
+    }
+    .status.online { background: #00b894; }
+    .status.offline { background: #d63031; }
+
+    main {
+      flex: 1;
+      display: flex;
+      max-width: 1100px;
+      width: 100%;
+      margin: 20px auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      overflow: hidden;
+    }
+
+    /* 左侧会话列 */
+    .sidebar {
+      width: 280px;
+      background: #fafbfc;
+      border-right: 1px solid #ebeef5;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid #ebeef5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .sidebar-header h3 { margin: 0; font-size: 14px; }
+    .btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      transition: all 0.2s;
+    }
+    .btn-primary { background: #667eea; color: white; }
+    .btn-primary:hover { background: #5568d3; }
+    .btn-secondary { background: #ecf0f1; color: #2c3e50; }
+    .btn-secondary:hover { background: #d5dbdb; }
+
+    .conv-list { flex: 1; overflow-y: auto; padding: 8px 0; }
+    .conv-item {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+      transition: all 0.15s;
+    }
+    .conv-item:hover { background: #f0f2f5; }
+    .conv-item.active { background: #e3f2fd; border-left-color: #667eea; }
+    .conv-title { font-weight: 500; font-size: 14px; }
+    .conv-meta { font-size: 11px; color: #909399; margin-top: 4px; }
+    .empty { padding: 40px 20px; text-align: center; color: #909399; font-size: 13px; }
+
+    /* 右侧聊天 */
+    .chat-main { flex: 1; display: flex; flex-direction: column; }
+    .chat-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid #ebeef5;
+      background: white;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .chat-header h3 { margin: 0; font-size: 14px; }
+    .chat-actions { font-size: 12px; color: #909399; }
+
+    .messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      background: #f9fafb;
+    }
+    .message {
+      display: flex;
+      margin-bottom: 16px;
+      align-items: flex-start;
+    }
+    .message.mine { flex-direction: row-reverse; }
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
+      flex-shrink: 0;
+    }
+    .message.mine .avatar { background: linear-gradient(135deg, #f093fb, #f5576c); }
+    .bubble {
+      max-width: 60%;
+      margin: 0 10px;
+      padding: 10px 14px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .message.mine .bubble {
+      background: #667eea;
+      color: white;
+    }
+    .meta { font-size: 10px; color: #909399; margin-top: 4px; }
+    .meta.hash { font-family: monospace; }
+    .verify-tag {
+      display: inline-block;
+      margin-top: 4px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      background: #e3f2fd;
+      color: #1976d2;
+    }
+    .verify-tag.hit { background: #ffebee; color: #c62828; }
+
+    .composer {
+      padding: 16px 20px;
+      border-top: 1px solid #ebeef5;
+      display: flex;
+      gap: 10px;
+      background: white;
+    }
+    .composer textarea {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #dcdfe6;
+      border-radius: 8px;
+      resize: none;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .composer textarea:focus { border-color: #667eea; }
+    .composer button {
+      padding: 10px 24px;
+    }
+
+    /* 登录遮罩 */
+    .login-mask {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .login-card {
+      background: white;
+      padding: 32px;
+      border-radius: 12px;
+      width: 360px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+    }
+    .login-card h2 { margin: 0 0 20px; font-size: 18px; }
+    .form-item { margin-bottom: 16px; }
+    .form-item label { display: block; font-size: 13px; margin-bottom: 6px; color: #606266; }
+    .form-item input {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #dcdfe6;
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+    .form-item input:focus { border-color: #667eea; }
+    .login-card button {
+      width: 100%;
+      padding: 12px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .login-card button:hover { background: #5568d3; }
+    .login-card .hint { margin-top: 12px; font-size: 11px; color: #909399; line-height: 1.6; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📞 Fin-Chat 聊天演示</h1>
+    <span id="status" class="status offline">离线</span>
+  </header>
+
+  <main>
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <h3>会话</h3>
+        <button class="btn btn-primary" onclick="newConv()">+ 新建</button>
+      </div>
+      <div id="convList" class="conv-list"></div>
+    </aside>
+
+    <section class="chat-main">
+      <div class="chat-header">
+        <h3 id="chatTitle">选择一个会话开始聊天</h3>
+        <span class="chat-actions" id="chatMeta"></span>
+      </div>
+      <div id="messages" class="messages"></div>
+      <div class="composer">
+        <textarea id="draft" rows="2" placeholder="输入消息... (Enter 发送, Shift+Enter 换行)"></textarea>
+        <button class="btn btn-primary" onclick="send()">发送</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="loginMask" class="login-mask">
+    <div class="login-card">
+      <h2>登录</h2>
+      <div class="form-item">
+        <label>用户 ID</label>
+        <input id="loginUserId" value="1001" />
+      </div>
+      <div class="form-item">
+        <label>认证 Token (JWT)</label>
+        <input id="loginToken" placeholder="留空将自动生成测试 token" />
+      </div>
+      <button onclick="doLogin()">登录</button>
+      <div class="hint">
+        演示说明:<br>
+        • 前端客户通过 WebSocket (STOMP) 连接后端<br>
+        • 后端处理消息 + 哈希链上链 + 多端推送<br>
+        • 客户可建多个会话, 实时收发消息
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ============ 全局状态 ============
+    let accessToken = ''
+    let userId = null
+    let stompClient = null
+    let conversations = []     // {id, title, advisorId, msgCount, lastMsgAt}
+    let currentConvId = ''
+    let currentMessages = []   // 当前会话消息
+
+    // 后端地址 (Gateway 9000)
+    const GATEWAY_HTTP = location.origin.replace(/\/\/.*/, '//localhost:9000')
+    const GATEWAY_WS   = (location.protocol === 'https:' ? 'wss' : 'ws') + '://localhost:9000/ws/chat'
+
+    // ============ 登录 ============
+    function doLogin() {
+      userId = Number(document.getElementById('loginUserId').value) || 1001
+      accessToken = document.getElementById('loginToken').value.trim()
+      if (!accessToken) {
+        // 测试模式: 生成伪 JWT
+        accessToken = 'demo.' + btoa(JSON.stringify({sub: userId, exp: Date.now() + 3600000})) + '.demo'
+      }
+      document.getElementById('loginMask').style.display = 'none'
+      connectWS()
+      loadConversations()
+    }
+
+    // ============ WebSocket (STOMP over SockJS 不开, 用原生 STOMP) ============
+    function connectWS() {
+      // 用 SockJS 走 HTTP 降级, 或直接 STOMP/WS
+      // 这里直接用原生 WS + STOMP frame
+      const ws = new WebSocket(GATEWAY_WS)
+      ws.onopen = () => {
+        setStatus(true)
+        // STOMP CONNECT
+        const connectFrame = 'CONNECT\naccept-version:1.2\nhost:localhost\nAuthorization:Bearer ' + accessToken + '\nX-User-Id:' + userId + '\n\n\x00'
+        ws.send(connectFrame)
+      }
+      ws.onclose = () => {
+        setStatus(false)
+        console.log('[WS] closed')
+      }
+      ws.onerror = (e) => {
+        console.error('[WS] error', e)
+        setStatus(false)
+      }
+      ws.onmessage = (evt) => {
+        const frame = evt.data
+        console.log('[WS RECV]', frame.substring(0, 200))
+        if (frame.startsWith('CONNECTED')) {
+          // 订阅会话主题 (与后端 ChatStompController 一致)
+          const topic = '/topic/chat/' + (currentConvId || '*')
+          ws.send('SUBSCRIBE\nid:sub-0\ndestination:' + topic + '\n\n\x00')
+          addSystemMsg('✅ 已连接到后端 ChatCenter (订阅 ' + topic + ')')
+        } else if (frame.startsWith('MESSAGE')) {
+          const bodyStart = frame.indexOf('\n\n') + 2
+          const body = frame.substring(bodyStart, frame.length - 1)
+          try {
+            const msg = JSON.parse(body)
+            onWsMessage(msg)
+          } catch (e) {
+            console.error('parse fail', e, body)
+          }
+        }
+      }
+      stompClient = { ws, send: (dest, body) => {
+        const frame = `SEND\ndestination:${dest}\ncontent-type:application/json\nAuthorization:Bearer ${accessToken}\nX-User-Id:${userId}\n\n${JSON.stringify(body)}\x00`
+        ws.send(frame)
+      }}
+    }
+
+    function setStatus(online) {
+      const el = document.getElementById('status')
+      el.textContent = online ? '● 在线' : '● 离线'
+      el.className = 'status ' + (online ? 'online' : 'offline')
+    }
+
+    // ============ 会话 ============
+    async function loadConversations() {
+      try {
+        const resp = await fetch(GATEWAY_HTTP + '/api/v1/chat/conversations', {
+          headers: { Authorization: 'Bearer ' + accessToken, 'X-User-Id': userId }
+        })
+        const api = await resp.json()
+        conversations = api.data || []
+        if (conversations.length === 0) {
+          // 没会话, 自动建一个测试会话
+          await createConv()
+        } else {
+          renderConvs()
+          selectConv(conversations[0].id)
+        }
+      } catch (e) {
+        console.error('load conv fail', e)
+        addSystemMsg('❌ 加载会话失败: ' + e.message)
+      }
+    }
+
+    async function createConv() {
+      try {
+        const resp = await fetch(GATEWAY_HTTP + '/api/v1/chat/conversations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + accessToken, 'X-User-Id': userId },
+          body: JSON.stringify({ title: '会话 ' + new Date().toLocaleTimeString() })
+        })
+        const api = await resp.json()
+        const conv = api.data
+        if (conv && conv.id) {
+          conversations.unshift(conv)
+          renderConvs()
+          selectConv(conv.id)
+        }
+      } catch (e) {
+        console.error('create conv fail', e)
+      }
+    }
+
+    function newConv() { createConv() }
+
+    function renderConvs() {
+      const list = document.getElementById('convList')
+      if (conversations.length === 0) {
+        list.innerHTML = '<div class="empty">暂无会话</div>'
+        return
+      }
+      list.innerHTML = conversations.map(c => `
+        <div class="conv-item ${c.id === currentConvId ? 'active' : ''}" onclick="selectConv('${c.id}')">
+          <div class="conv-title">${escapeHtml(c.title || '未命名')}</div>
+          <div class="conv-meta">${c.msgCount || 0} 条消息 ${c.lastMsgAt ? '· ' + new Date(c.lastMsgAt).toLocaleTimeString() : ''}</div>
+        </div>
+      `).join('')
+    }
+
+    async function selectConv(convId) {
+      currentConvId = convId
+      renderConvs()
+      const conv = conversations.find(c => c.id === convId)
+      document.getElementById('chatTitle').textContent = conv?.title || '会话'
+      document.getElementById('chatMeta').textContent = conv ? `ID: ${conv.id}` : ''
+
+      // 加载历史消息
+      try {
+        const resp = await fetch(`${GATEWAY_HTTP}/api/v1/chat/messages/${convId}?size=50`, {
+          headers: { Authorization: 'Bearer ' + accessToken, 'X-User-Id': userId }
+        })
+        const api = await resp.json()
+        currentMessages = (api.data?.records || api.data || []).slice().reverse()
+        renderMessages()
+      } catch (e) {
+        console.error('load msg fail', e)
+        document.getElementById('messages').innerHTML = '<div class="empty">加载消息失败</div>'
+      }
+    }
+
+    // ============ 消息 ============
+    function send() {
+      const draft = document.getElementById('draft')
+      const content = draft.value.trim()
+      if (!content || !currentConvId) return
+      if (!stompClient || !stompClient.ws || stompClient.ws.readyState !== 1) {
+        addSystemMsg('⚠️ 未连接到后端, 请刷新页面重试')
+        return
+      }
+      // STOMP SEND
+      stompClient.send('/app/chat/' + currentConvId, {
+        conversationId: currentConvId,
+        content,
+        type: 'TEXT',
+        senderType: 'CUSTOMER'
+      })
+      draft.value = ''
+    }
+
+    function onWsMessage(msg) {
+      if (!msg || !msg.msgId) return
+      // 过滤只显示当前会话
+      if (msg.conversationId !== currentConvId) {
+        addSystemMsg(`💬 新消息 (会话 ${msg.conversationId}): ${msg.content?.substring(0, 30)}...`)
+        return
+      }
+      currentMessages.push(msg)
+      renderMessages()
+    }
+
+    function renderMessages() {
+      const list = document.getElementById('messages')
+      list.innerHTML = currentMessages.map(m => {
+        const mine = m.senderId === userId
+        const initial = (mine ? '我' : '客') + (m.senderType?.charAt(0) || '')
+        return `
+          <div class="message ${mine ? 'mine' : ''}">
+            <div class="avatar">${initial}</div>
+            <div>
+              <div class="bubble">${escapeHtml(m.content || '')}</div>
+              <div class="meta">${new Date(m.serverTs || Date.now()).toLocaleTimeString()}</div>
+              ${m.contentHash ? `<div class="meta hash">🔗 ${m.contentHash.substring(0, 12)}...</div>` : ''}
+              ${m.verifyRefs?.length ? m.verifyRefs.map(r => `
+                <span class="verify-tag ${r.hit ? 'hit' : ''}">
+                  ${r.type}: ${escapeHtml((r.summary || '').substring(0, 20))}
+                </span>
+              `).join('') : ''}
+            </div>
+          </div>
+        `
+      }).join('')
+      list.scrollTop = list.scrollHeight
+    }
+
+    function addSystemMsg(text) {
+      const list = document.getElementById('messages')
+      const div = document.createElement('div')
+      div.style.cssText = 'text-align:center;color:#909399;font-size:12px;padding:8px;'
+      div.textContent = text
+      list.appendChild(div)
+      list.scrollTop = list.scrollHeight
+    }
+
+    function escapeHtml(s) {
+      return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+    }
+
+    // 回车发送
+    document.getElementById('draft').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault()
+        send()
+      }
+    })
+  </script>
+</body>
+</html>

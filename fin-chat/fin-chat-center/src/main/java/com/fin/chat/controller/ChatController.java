@@ -3,20 +3,22 @@ package com.fin.chat.controller;
 import com.fin.chat.dto.ChatMessage;
 import com.fin.chat.dto.Conversation;
 import com.fin.chat.service.ConversationService;
-import com.fin.chat.service.HashChainService;
+import com.fin.chat.service.MessageService;
 import com.fin.commons.resp.ApiResponse;
 import com.fin.commons.user.UserContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
  * 聊天 REST API
+ *
+ * <p>前端: /api/v1/chat/...
+ * <p>路径: 后端直连 8082 (生产经 Gateway 9000)
  */
 @RestController
 @RequestMapping("/api/v1/chat")
@@ -25,7 +27,16 @@ import java.util.Map;
 public class ChatController {
 
     private final ConversationService conversationService;
-    private final HashChainService hashChainService;
+    private final MessageService messageService;
+
+    @GetMapping("/health")
+    public ApiResponse<Map<String, Object>> health() {
+        Map<String, Object> status = new HashMap<>();
+        status.put("service", "fin-chat-center");
+        status.put("status", "UP");
+        status.put("ts", System.currentTimeMillis());
+        return ApiResponse.ok(status);
+    }
 
     @GetMapping("/conversations")
     public ApiResponse<List<Conversation>> listConversations() {
@@ -58,35 +69,14 @@ public class ChatController {
 
         String conversationId = (String) body.get("conversationId");
         String content = (String) body.get("content");
+        String senderType = (String) body.getOrDefault("senderType", "CUSTOMER");
         String type = (String) body.getOrDefault("type", "TEXT");
+
         if (conversationId == null || content == null) {
-            throw new IllegalArgumentException("conversationId/content 必填");
+            throw new IllegalStateException("conversationId 和 content 必填");
         }
 
-        Conversation conv = conversationService.get(conversationId);
-        if (conv == null) throw new IllegalStateException("会话不存在");
-
-        // 1. 哈希链
-        String prev = hashChainService.getLastHash(conversationId);
-        String hash = hashChainService.nextHash(conversationId, content, prev);
-
-        // 2. 消息组装
-        ChatMessage msg = ChatMessage.builder()
-                .msgId(com.fin.commons.util.IdGenerator.msgId())
-                .conversationId(conversationId)
-                .senderId(userId)
-                .senderType("CUSTOMER")
-                .type(type)
-                .content(content)
-                .contentHash(hash)
-                .prevHash(prev)
-                .serverTs(System.currentTimeMillis())
-                .build();
-
-        // 3. 更新会话
-        conversationService.touch(conversationId, msg.getMsgId());
-
-        log.info("[CHAT] msg sent: conv={}, user={}, len={}", conversationId, userId, content.length());
+        ChatMessage msg = messageService.send(conversationId, userId, senderType, content, type);
         return ApiResponse.ok(msg);
     }
 
@@ -94,22 +84,16 @@ public class ChatController {
     public ApiResponse<Map<String, Object>> listMessages(
             @PathVariable String conversationId,
             @RequestParam(defaultValue = "20") int size) {
-        // 沙箱: 返回占位 (生产接 MongoDB)
+        List<ChatMessage> msgs = messageService.history(conversationId, size);
         Map<String, Object> result = new HashMap<>();
-        result.put("records", List.of());
-        result.put("total", 0);
+        result.put("records", msgs);
+        result.put("total", msgs.size());
         result.put("conversationId", conversationId);
         return ApiResponse.ok(result);
     }
 
     @GetMapping("/verify/{conversationId}")
     public ApiResponse<Map<String, Object>> verifyChain(@PathVariable String conversationId) {
-        // 沙箱: 简化, 返回最后 hash
-        Map<String, Object> report = new HashMap<>();
-        report.put("conversationId", conversationId);
-        report.put("lastHash", hashChainService.getLastHash(conversationId));
-        report.put("status", "OK");
-        report.put("ts", LocalDateTime.now().toString());
-        return ApiResponse.ok(report);
+        return ApiResponse.ok(messageService.verifyChain(conversationId));
     }
 }

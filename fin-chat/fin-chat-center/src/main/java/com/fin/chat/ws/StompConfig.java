@@ -1,6 +1,8 @@
 package com.fin.chat.ws;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
@@ -16,7 +18,12 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
  */
 @Configuration
 @EnableWebSocketMessageBroker
+@RequiredArgsConstructor
 public class StompConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final StompAuthChannelInterceptor authInterceptor;
+    private final AuthHandshakeHandler handshakeHandler;
+    private final AuthHandshakeInterceptor handshakeInterceptor;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -28,13 +35,17 @@ public class StompConfig implements WebSocketMessageBrokerConfigurer {
     }
 
     @Override
+    public void configureClientInboundChannel(ChannelRegistration registration) {
+        registration.interceptors(authInterceptor);
+    }
+
+    @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // 只注册原生 WebSocket (不要 SockJS, SockJS 会把消息包成 a["..."] 数组格式)
         registry.addEndpoint("/ws/chat")
                 .setAllowedOriginPatterns("*")
-                .withSockJS();
-        // 同时支持原生 WebSocket
-        registry.addEndpoint("/ws/chat")
-                .setAllowedOriginPatterns("*");
+                .setHandshakeHandler(handshakeHandler)
+                .addInterceptors(handshakeInterceptor);
     }
 
     private TaskScheduler heartBeatScheduler() {
