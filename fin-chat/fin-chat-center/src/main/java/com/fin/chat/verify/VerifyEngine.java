@@ -40,7 +40,7 @@ public class VerifyEngine {
         List<VerifyEntity> entities = new ArrayList<>();
 
         // 1. 股票代码 (6 位数字 + 括号)
-        StockProvider.extract(text).forEach(code ->
+        com.fin.chat.verify.provider.StockProvider.extract(text).forEach(code ->
             entities.add(VerifyEntity.builder()
                 .type(EntityType.STOCK_CODE).value(code).context(text).build()));
 
@@ -48,14 +48,48 @@ public class VerifyEngine {
         Pattern idCard = Pattern.compile("[1-9]\\d{5}(?:18|19|20)\\d{2}(?:0\\d|1[0-2])(?:[0-2]\\d|3[01])\\d{3}[\\dXx]");
         Matcher m1 = idCard.matcher(text);
         while (m1.find()) {
+            String id = m1.group();
+            // 脱敏: 前 6 + * + 后 4
+            String masked = id.substring(0, 6) + "********" + id.substring(14);
             entities.add(VerifyEntity.builder()
-                .type(EntityType.ID_CARD)
-                .value(m1.group().substring(0, 6) + "********" + m1.group().substring(14))  // 脱敏
+                .type(EntityType.ID_CARD).value(masked)
                 .context(text).build());
         }
 
-        // 3. 政策关键词
-        String[] policyKeywords = {"资管新规", "适当性", "投资者", "理财", "净值", "刚兑", "私募", "公募"};
+        // 3. 银行卡号 (16-19 位连续数字)
+        Pattern bankCard = Pattern.compile("\\b\\d{16,19}\\b");
+        Matcher m2 = bankCard.matcher(text);
+        while (m2.find()) {
+            String card = m2.group();
+            // 只匹配 Luhn 校验通过的
+            if (com.fin.chat.verify.provider.BankCardProvider.luhnCheck(card)) {
+                String masked = card.substring(0, 4) + "**********" + card.substring(card.length() - 4);
+                entities.add(VerifyEntity.builder()
+                    .type(EntityType.BANK_CARD).value(masked)
+                    .context(text).build());
+            }
+        }
+
+        // 4. 统一社会信用代码 (18 位字母数字混合)
+        Pattern credit = Pattern.compile("\\b[0-9A-HJ-NPQRTUWXY]{2}\\d{6}[0-9A-HJ-NPQRTUWXY]{10}\\b");
+        Matcher m3 = credit.matcher(text);
+        while (m3.find()) {
+            entities.add(VerifyEntity.builder()
+                .type(EntityType.CREDIT_CODE).value(m3.group())
+                .context(text).build());
+        }
+
+        // 5. 企业名称 (常见后缀)
+        Pattern ent = Pattern.compile("([\\u4e00-\\u9fa5]{2,15}(?:集团|公司|有限|股份|科技|金融|资管))");
+        Matcher m4 = ent.matcher(text);
+        while (m4.find()) {
+            entities.add(VerifyEntity.builder()
+                .type(EntityType.COMPANY_NAME).value(m4.group())
+                .context(text).build());
+        }
+
+        // 6. 政策关键词
+        String[] policyKeywords = {"资管新规", "适当性", "投资者", "理财", "净值", "刚兑", "私募", "公募", "双录", "冷静期"};
         for (String kw : policyKeywords) {
             if (text.contains(kw)) {
                 entities.add(VerifyEntity.builder()
@@ -63,8 +97,8 @@ public class VerifyEngine {
             }
         }
 
-        // 4. 产品关键词
-        String[] productKeywords = {"稳健理财", "平衡配置", "沪深300", "国债逆回购", "私募"};
+        // 7. 产品关键词
+        String[] productKeywords = {"稳健理财", "平衡配置", "沪深300", "国债逆回购", "私募", "货币基金", "混合基金", "ETF"};
         for (String kw : productKeywords) {
             if (text.contains(kw)) {
                 entities.add(VerifyEntity.builder()
